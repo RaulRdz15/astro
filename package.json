@@ -10,6 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/rtoal/astro.git"
   },
+  "type": "module",
   "author": "",
   "license": "MIT",
   "bugs": {

@@ -1,6 +1,6 @@
 # astro
 
-Logo will go here
+Logo will go here, I can't wait
 
 A couple paragraphs about the language - must tell a fun story
 
