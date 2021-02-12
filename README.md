@@ -1,6 +1,6 @@
 # astro
 
-![](../docs/image.png)
+![](./docs/image.png)
 A couple paragraphs about the language - must tell a fun story
 
 Scope of the language
