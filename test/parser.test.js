@@ -3,7 +3,7 @@ import parse from "../src/parser.js"
 
 const goodPrograms = [
   `meow("meow")`,
-  `to pounce fiboancci(n: lick) {
+  `to pounce fibonacci(n: lick) {
     scratch a, b = 0, 1
     purr b < n {
       a, b = b, a + b
