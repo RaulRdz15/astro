@@ -12,9 +12,14 @@ const goodPrograms = [
     hairball b
   }`,
 
-  `scratch num~lives = 4 + 5`,
+  `scratch num~lives = 4 + 5
+   fur life in lives {
+      meow("AI IS ALIVVVVVVEEEE ")
+      litter
+   } `,
 
-  `to pounce next(n: lick) { hairball n + 1}`,
+  `to pounce next(n: lick) { hairball n + 1}
+  next(100)`,
 ]
 
 const badPrograms = [`irgbroeuigbeishdlfkjsdhlfkshdlfksgf`]
