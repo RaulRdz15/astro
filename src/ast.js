@@ -53,3 +53,21 @@ export class ReturnStatement {
     this.returnValue = returnValue
   }
 }
+
+export class BinaryExpression {
+  constructor(op, left, right) {
+    Object.assign(this, { op, left, right })
+  }
+}
+
+export class IdentifierExpression {
+  constructor(name) {
+    this.name = name
+  }
+}
+
+export class Call {
+  constructor(callee, args) {
+    Object.assign(this, { callee, args })
+  }
+}
