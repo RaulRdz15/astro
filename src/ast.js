@@ -71,3 +71,9 @@ export class Call {
     Object.assign(this, { callee, args })
   }
 }
+
+export class UnaryExpression {
+  constructor(op, operand, isprefix) {
+    Object.assign(this, { op, operand, isprefix })
+  }
+}

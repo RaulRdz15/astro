@@ -18,33 +18,56 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
   Break = litter
   IdList = id ("," id)*
   Return = hairball Exp
-  Exp = Exp ("+" | "<") Term     -- add
-      | Term
-  Term = num | id | Call | string
+  Exp = Exp logop Joint                                   --binary
+      | Joint
+  Joint = Joint relop AddOp                               --binary
+        | AddOp
+  AddOp = AddOp addop Term                                --binary
+        | Term
+  Term = Term mulop Exponential                           --binary
+       | Exponential
+  Exponential = Factor "^" Exponential                    --binary
+              | Factor
+  Factor = ("-") Factor                                   --negation
+         | ("!") Factor                                   --boolNegation
+         | "(" Exp ")"                                    --parens
+         | numlit
+         | stringlit
+         | boollit
+         | space
+         | id
+  numlit = digit+ "." digit+                              --float
+         | digit+                                         --int
+  boollit = "true" | "false"
+  stringlit = "\"" char* "\""
+  logop = "&&" | "||"
+  relop = "<=" | "<" | "==" | "!=" | ">=" | ">"
+  addop = "+" | "-"
+  mulop = "*"| "/"| "%"
   Call = id "(" ExpList ")"
 
-  typename = lick | wink | stare
+  typename = lives | yarn | ponder
   scratch = "scratch" ~idchar
   to = "to" ~idchar
   pounce = "pounce" ~idchar
-  lick = "lick" ~idchar
+  lives = "lives" ~idchar
   wiggle = "wiggle" ~idchar
-  wink = "wink" ~idchar
-  stare = "stare" ~idchar
+  yarn = "yarn" ~idchar
+  ponder = "ponder" ~idchar
   fur = "fur" ~idchar
   purr = "purr" ~idchar
   in = "in" ~idchar
   meow = "meow" ~idchar
   litter = "litter" ~idchar
   hairball = "hairball" ~idchar
-  keyword = scratch | to | pounce | lick | wink
-          | stare | fur | purr | meow | litter | hairball
-
+  keyword = scratch | to | pounce | lives | yarn
+          | ponder | fur | purr | meow | litter | hairball
   string = "\"" char* "\""
   char = ~"\"" any
   num = digit+
   idchar = letter | digit | "~"
-  id = ~keyword letter idchar*
+  id = ~keyword letter alnum*
+  space += "//" (~"\n" any)* ("\n" | end)  --comment
 }
 `)
 
@@ -53,7 +76,10 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return new ast.Program(statements.tree())
   },
   VarDecl(_scratch, identifiers, _eq, initializers) {
-    return new ast.VariableDeclaration(identifiers.tree(), initializers.tree())
+    return new ast.VariableDeclaration(
+      identifiers.sourceString,
+      initializers.tree()
+    )
   },
   FunDecl(_to, _pounce, name, _left, parameters, _right, body) {
     return new ast.FunctionDeclaration(
@@ -92,14 +118,50 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
   Return(_hairball, returnValue) {
     return new ast.ReturnStatement(returnValue.tree())
   },
-  Exp_add(left, op, right) {
-    return new ast.BinaryExpression(left.tree(), op.sourceString, right.tree())
+  Exp_binary(left, op, right) {
+    return new ast.BinaryExpression(op.sourceString, left.tree(), right.tree())
+  },
+  Joint_binary(left, op, right) {
+    return new ast.BinaryExpression(op.sourceString, left.tree(), right.tree())
+  },
+  AddOp_binary(left, op, right) {
+    return new ast.BinaryExpression(op.sourceString, left.tree(), right.tree())
+  },
+  Term_binary(left, op, right) {
+    return new ast.BinaryExpression(op.sourceString, left.tree(), right.tree())
+  },
+  Exponential_binary(left, op, right) {
+    return new ast.BinaryExpression(op.sourceString, left.tree(), right.tree())
+  },
+  Factor_negation(op, operand) {
+    return new ast.UnaryExpression(op.sourceString, operand.tree(), true)
+  },
+  Factor_boolNegation(op, operand) {
+    return new ast.UnaryExpression(op.sourceString, operand.tree(), true)
+  },
+  Factor_parens(_left, exp, _right) {
+    return exp.tree()
   },
   Call(callee, _left, args, _right) {
     return new ast.Call(callee.tree(), args.tree())
   },
   id(_first, _rest) {
     return new ast.IdentifierExpression(this.sourceString)
+  },
+  numlit_int(digits) {
+    return BigInt(this.sourceString)
+  },
+  numlit_float(digits, dot, decimals) {
+    return Number(this.sourceString)
+  },
+  stringlit(_left, chars, _right) {
+    return chars.sourceString
+  },
+  boollit(bool) {
+    if (bool.sourceString === "sour") {
+      return new ast.Bool(bool.sourceString, false, "taste")
+    }
+    return new ast.Bool(bool.sourceString, true, "taste")
   },
   num(digits) {
     return Number(digits.sourceString)
