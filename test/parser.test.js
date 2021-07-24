@@ -9,14 +9,14 @@ const syntaxChecks = [
 ]
 
 const syntaxErrors = [
-  ["malformed number", "scratch x= 2.", /Line 1, col 10:/],
+  ["malformed number", "scratch x= 2.", /Line 1, col 14:/],
   ["a missing right operand", "meow (5 -)", /Line 1, col 10:/],
   ["a non-operator", "meow (7 * ((2 _ 3))", /Line 1, col 15:/],
   ["an expression starting with a )", "meow ())", /Line 1, col 7:/],
   ["a statement starting with expression", "x * 5", /Line 1, col 3:/],
-  ["an illegal statement on line 2", "meow (5\nx * 5)", /Line 2, col 3:/],
-  ["a statement starting with a )", "meow (5\n) * 5)", /Line 2, col 1:/],
-  ["an expression starting with a *", "scratch x = * 71", /Line 1, col 9:/],
+  ["an illegal statement on line 2", "meow (5\nx * 5)", /Line 2, col 1:/],
+  ["a statement starting with a )", "meow (5\n) * 5)", /Line 2, col 3:/],
+  ["an expression starting with a *", "scratch x = * 71", /Line 1, col 13:/],
 ]
 
 const source = `scratch dozen = 1 * (0 + 101.3)
@@ -26,18 +26,18 @@ const source = `scratch dozen = 1 * (0 + 101.3)
 
 const expectedAst = new ast.Program([
   new ast.VariableDeclaration(
-    "dozen",
-    new ast.BinaryExpression("*", 1, new ast.BinaryExpression("+", 0, 101.3))
+    [new ast.IdentifierExpression("dozen")],
+    [new ast.BinaryExpression("*", 1, new ast.BinaryExpression("+", 0, 101.3))]
   ),
   new ast.VariableDeclaration(
-    "y",
-    new ast.BinaryExpression("-", Symbol.for("dozen"), 0)
+    [new ast.IdentifierExpression("y")],
+    [new ast.BinaryExpression("-", new ast.IdentifierExpression("dozen"), 0)]
   ),
   new ast.Assignment(
-    Symbol.for("dozen"),
-    new ast.BinaryExpression("/", 0, Symbol.for("y"))
+    [new ast.IdentifierExpression("dozen")],
+    [new ast.BinaryExpression("/", 0, new ast.IdentifierExpression("y"))]
   ),
-  new ast.PrintStatement(Symbol.for("dozen")),
+  new ast.PrintStatement(new ast.IdentifierExpression("dozen")),
 ])
 
 describe("The parser", () => {
@@ -68,7 +68,7 @@ const goodPrograms = [
   }`,
 
   `scratch num~lives = 4 + 5
-   fur life in lives {
+   fur life in excursions {
       meow("AI IS ALIVVVVVVEEEE ")
       litter
    } `,

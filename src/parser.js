@@ -34,7 +34,6 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
          | numlit
          | stringlit
          | boollit
-         | space
          | id
   numlit = digit+ "." digit+                              --float
          | digit+                                         --int
@@ -66,7 +65,7 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
   char = ~"\"" any
   num = digit+
   idchar = letter | digit | "~"
-  id = ~keyword letter alnum*
+  id = ~keyword letter idchar*
   space += "//" (~"\n" any)* ("\n" | end)  --comment
 }
 `)
@@ -76,10 +75,7 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return new ast.Program(statements.tree())
   },
   VarDecl(_scratch, identifiers, _eq, initializers) {
-    return new ast.VariableDeclaration(
-      identifiers.sourceString,
-      initializers.tree()
-    )
+    return new ast.VariableDeclaration(identifiers.tree(), initializers.tree())
   },
   FunDecl(_to, _pounce, name, _left, parameters, _right, body) {
     return new ast.FunctionDeclaration(
@@ -149,7 +145,7 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return new ast.IdentifierExpression(this.sourceString)
   },
   numlit_int(digits) {
-    return BigInt(this.sourceString)
+    return Number(this.sourceString)
   },
   numlit_float(digits, dot, decimals) {
     return Number(this.sourceString)
