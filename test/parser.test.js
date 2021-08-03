@@ -13,7 +13,6 @@ const syntaxErrors = [
   ["a missing right operand", "meow (5 -)", /Line 1, col 10:/],
   ["a non-operator", "meow (7 * ((2 _ 3))", /Line 1, col 15:/],
   ["an expression starting with a )", "meow ())", /Line 1, col 7:/],
-  ["a statement starting with expression", "x * 5", /Line 1, col 3:/],
   ["an illegal statement on line 2", "meow (5\nx * 5)", /Line 2, col 1:/],
   ["a statement starting with a )", "meow (5\n) * 5)", /Line 2, col 3:/],
   ["an expression starting with a *", "scratch x = * 71", /Line 1, col 13:/],
@@ -26,11 +25,11 @@ const source = `scratch dozen = 1 * (0 + 101.3)
 
 const expectedAst = new ast.Program([
   new ast.VariableDeclaration(
-    [new ast.IdentifierExpression("dozen")],
+    new ast.Variable("dozen"),
     [new ast.BinaryExpression("*", 1, new ast.BinaryExpression("+", 0, 101.3))]
   ),
   new ast.VariableDeclaration(
-    [new ast.IdentifierExpression("y")],
+    new ast.Variable("y"),
     [new ast.BinaryExpression("-", new ast.IdentifierExpression("dozen"), 0)]
   ),
   new ast.Assignment(
@@ -59,7 +58,7 @@ describe("The parser", () => {
 const goodPrograms = [
   `meow("meow")`,
 
-  `to pounce fibonacci(n: lives) {
+  `to pounce ponder fibonacci(n: lives) {
     scratch a, b = 0, 1
     purr b < n {
       a, b = b, a + b
@@ -73,7 +72,7 @@ const goodPrograms = [
       litter
    } `,
 
-  `to pounce next(n: lives) { hairball n + 1}
+  `to pounce lives next(n: lives) { hairball n + 1}
   next(100)`,
 ]
 
