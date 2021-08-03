@@ -3,10 +3,12 @@ import * as ast from "./ast.js"
 
 const astroGrammar = ohm.grammar(String.raw`Astro {
   Program = Statement+
-  Statement = Declaration | Assignment | Loop | Print | Break | Return | Call
+  Statement = Declaration | Assignment | Loop | Print | Break | Return | Call | Bump
   Declaration = VarDecl | FunDecl
   VarDecl = scratch IdList "=" ExpList
-  FunDecl = to pounce id "(" Param* ")" Body
+  FunDecl = to pounce (Type)? id "(" ListOf<Param, ","> ")" Body
+  Type = "(" ListOf<Type, ","> ")" "->" Type              --function
+       | typename                                         --typename
   Param  = id ":" typename
   Body = "{" Statement* "}"
   ExpList = ListOf<Exp,  ",">
@@ -17,7 +19,8 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
   Print = meow "(" Exp ")"
   Break = litter
   IdList = id ("," id)*
-  Return = hairball Exp
+  Return = hairball Exp                                   --return
+         | hairball                                       --shortreturn
   Exp = Exp logop Joint                                   --binary
       | Joint
   Joint = Joint relop AddOp                               --binary
@@ -44,8 +47,9 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
   addop = "+" | "-"
   mulop = "*"| "/"| "%"
   Call = id "(" ExpList ")"
+  Bump = Exp ("++" | "--")
 
-  typename = lives | yarn | ponder
+  typename = lives | yarn | ponder | void
   scratch = "scratch" ~idchar
   to = "to" ~idchar
   pounce = "pounce" ~idchar
@@ -53,6 +57,7 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
   wiggle = "wiggle" ~idchar
   yarn = "yarn" ~idchar
   ponder = "ponder" ~idchar
+  void = "void" ~idchar
   fur = "fur" ~idchar
   purr = "purr" ~idchar
   in = "in" ~idchar
@@ -60,7 +65,7 @@ const astroGrammar = ohm.grammar(String.raw`Astro {
   litter = "litter" ~idchar
   hairball = "hairball" ~idchar
   keyword = scratch | to | pounce | lives | yarn
-          | ponder | fur | purr | meow | litter | hairball
+          | ponder | fur | purr | meow | litter | hairball | void
   string = "\"" char* "\""
   char = ~"\"" any
   num = digit+
@@ -75,14 +80,21 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return new ast.Program(statements.tree())
   },
   VarDecl(_scratch, identifiers, _eq, initializers) {
-    return new ast.VariableDeclaration(identifiers.tree(), initializers.tree())
+    const variable = new ast.Variable(identifiers.sourceString)
+    return new ast.VariableDeclaration(variable, initializers.tree())
   },
-  FunDecl(_to, _pounce, name, _left, parameters, _right, body) {
+  FunDecl(_to, _pounce, returnType, name, _left, params, _right, body) {
     return new ast.FunctionDeclaration(
-      name.tree(),
-      parameters.tree(),
+      new ast.Function(
+        name.sourceString,
+        params.asIteration().tree(),
+        returnType.tree()[0] ?? null
+      ),
       body.tree()
     )
+  },
+  Type_function(_left, inTypes, _right, _arrow, outType) {
+    return new ast.FunctionType(inTypes.asIteration().tree(), outType.tree())
   },
   Param(name, _colon, typename) {
     return new ast.Parameter(name.tree(), typename.tree())
@@ -93,25 +105,28 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
   ExpList(expressions) {
     return expressions.asIteration().tree()
   },
+  Return_shortreturn(_hairball) {
+    return new ast.ShortReturnStatement()
+  },
   Assignment(targets, _eq, sources) {
     return new ast.Assignment(targets.tree(), sources.tree())
   },
   ForLoop(_fur, iterator, _in, range, body) {
-    return new ast.ForLoop(iterator.tree(), range.tree(), body.tree())
+    return new ast.ForStatement(iterator.tree(), range.tree(), body.tree())
   },
   WhileLoop(_purr, test, body) {
-    return new ast.WhileLoop(test.tree(), body.tree())
+    return new ast.WhileStatement(test.tree(), body.tree())
   },
   Print(_meow, _left, argument, _right) {
     return new ast.PrintStatement(argument.tree())
   },
-  Break(_) {
-    return new ast.Break()
+  Break(_break) {
+    return new ast.BreakStatement()
   },
   IdList(first, _commas, rest) {
     return [first.tree(), ...rest.tree()]
   },
-  Return(_hairball, returnValue) {
+  Return_return(_hairball, returnValue) {
     return new ast.ReturnStatement(returnValue.tree())
   },
   Exp_binary(left, op, right) {
@@ -141,6 +156,11 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
   Call(callee, _left, args, _right) {
     return new ast.Call(callee.tree(), args.tree())
   },
+  Bump(variable, operator) {
+    return operator.sourceString === "++"
+      ? new ast.Increment(variable.tree())
+      : new ast.Decrement(variable.tree())
+  },
   id(_first, _rest) {
     return new ast.IdentifierExpression(this.sourceString)
   },
@@ -154,10 +174,10 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return chars.sourceString
   },
   boollit(bool) {
-    if (bool.sourceString === "sour") {
-      return new ast.Bool(bool.sourceString, false, "taste")
+    if (bool.sourceString === "false") {
+      return new ast.Bool(bool.sourceString, false, "ponder")
     }
-    return new ast.Bool(bool.sourceString, true, "taste")
+    return new ast.Bool(bool.sourceString, true, "ponder")
   },
   num(digits) {
     return Number(digits.sourceString)
