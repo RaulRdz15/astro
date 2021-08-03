@@ -25,11 +25,11 @@ const source = `scratch dozen = 1 * (0 + 101.3)
 
 const expectedAst = new ast.Program([
   new ast.VariableDeclaration(
-    new ast.Variable("dozen"),
+    [new ast.Variable("dozen")],
     [new ast.BinaryExpression("*", 1, new ast.BinaryExpression("+", 0, 101.3))]
   ),
   new ast.VariableDeclaration(
-    new ast.Variable("y"),
+    [new ast.Variable("y")],
     [new ast.BinaryExpression("-", new ast.IdentifierExpression("dozen"), 0)]
   ),
   new ast.Assignment(

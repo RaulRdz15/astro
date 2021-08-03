@@ -80,8 +80,10 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return new ast.Program(statements.tree())
   },
   VarDecl(_scratch, identifiers, _eq, initializers) {
-    const variable = new ast.Variable(identifiers.sourceString)
-    return new ast.VariableDeclaration(variable, initializers.tree())
+    const variables = identifiers.sourceString
+      .split(/\s*,\s*/)
+      .map((x) => new ast.Variable(x))
+    return new ast.VariableDeclaration(variables, initializers.tree())
   },
   FunDecl(_to, _pounce, returnType, name, _left, params, _right, body) {
     return new ast.FunctionDeclaration(
@@ -174,10 +176,7 @@ const astBuilder = astroGrammar.createSemantics().addOperation("tree", {
     return chars.sourceString
   },
   boollit(bool) {
-    if (bool.sourceString === "false") {
-      return new ast.Bool(bool.sourceString, false, "ponder")
-    }
-    return new ast.Bool(bool.sourceString, true, "ponder")
+    return bool.sourceString === "true"
   },
   num(digits) {
     return Number(digits.sourceString)

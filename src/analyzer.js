@@ -1,16 +1,17 @@
-import {Variable,Type,FunctionType} from "./ast.js"
+import { Variable, Type, FunctionType } from "./ast.js"
 import * as stdlib from "./stdlib.js"
-  
+import util from "util"
+
 function must(condition, errorMessage) {
   if (!condition) {
-  throw new Error(errorMessage)
+    throw new Error(errorMessage)
   }
 }
-  
+
 Object.assign(Type.prototype, {
   // Equivalence: when are two types the same
   isEquivalentTo(target) {
-  return this == target
+    return this == target
   },
   // T1 assignable to T2 is when x:T1 can be assigned to y:T2. By default
   // this is only when two types are equivalent; however, for other kinds
@@ -21,7 +22,7 @@ Object.assign(Type.prototype, {
     return this.isEquivalentTo(target)
   },
 })
-  
+
 // Object.assign(ArrayType.prototype, {
 //   isEquivalentTo(target) {
 //     // [T] equivalent to [U] only when T is equivalent to U.
@@ -68,7 +69,7 @@ Object.assign(FunctionType.prototype, {
 //   },
 // })
 
-const check = self => ({
+const check = (self) => ({
   isNumeric() {
     must(
       [Type.INT, Type.FLOAT].includes(self.type),
@@ -83,10 +84,16 @@ const check = self => ({
     )
   },
   isBoolean() {
-    must(self.type === Type.BOOLEAN, `Expected a boolean, found ${self.type.description}`)
+    must(
+      self.type === Type.BOOLEAN,
+      `Expected a boolean, found ${self.type.description}`
+    )
   },
   isInteger() {
-    must(self.type === Type.INT || Type.FLOAT, `Expected an integer, found ${self.type.description}`)
+    must(
+      self.type === Type.INT || Type.FLOAT,
+      `Expected an integer, found ${self.type.description}`
+    )
   },
   isAType() {
     must(self instanceof Type, "Type expected")
@@ -98,11 +105,14 @@ const check = self => ({
   //   must(self.type.constructor === ArrayType, "Array expected")
   // },
   hasSameTypeAs(other) {
-    must(self.type.isEquivalentTo(other.type), "Operands do not have the same type")
+    must(
+      self.type.isEquivalentTo(other.type),
+      "Operands do not have the same type"
+    )
   },
   allHaveSameType() {
     must(
-      self.slice(1).every(e => e.type.isEquivalentTo(self[0].type)),
+      self.slice(1).every((e) => e.type.isEquivalentTo(self[0].type)),
       "Not all elements have the same type"
     )
   },
@@ -122,10 +132,13 @@ const check = self => ({
     must(!self.readOnly, `Cannot assign to constant ${self.name}`)
   },
   areAllDistinct() {
-    must(new Set(self.map(f => f.name)).size === self.length, "Fields must be distinct")
+    must(
+      new Set(self.map((f) => f.name)).size === self.length,
+      "Fields must be distinct"
+    )
   },
   isInTheObject(object) {
-    must(object.type.fields.map(f => f.name).includes(self), "No such field")
+    must(object.type.fields.map((f) => f.name).includes(self), "No such field")
   },
   isInsideALoop() {
     must(self.inLoop, "Break can only appear in a loop")
@@ -140,7 +153,10 @@ const check = self => ({
     )
   },
   returnsNothing() {
-    must(self.type.returnType === Type.VOID, "Something should be returned here")
+    must(
+      self.type.returnType === Type.VOID,
+      "Something should be returned here"
+    )
   },
   returnsSomething() {
     must(self.type.returnType !== Type.VOID, "Cannot return a value here")
@@ -160,7 +176,7 @@ const check = self => ({
     check(self).match(calleeType.paramTypes)
   },
   matchFieldsOf(type) {
-    check(self).match(type.fields.map(f => f.type))
+    check(self).match(type.fields.map((f) => f.type))
   },
 })
 
@@ -215,8 +231,11 @@ class Context {
   VariableDeclaration(d) {
     // Only analyze the declaration, not the variable
     d.initializers = this.analyze(d.initializers)
-    d.variables.type = d.initializers.type
-    this.add(d.variables.name, d.variables)
+    // TODO: assert d.initializers.length === d.variables.length
+    for (let i = 0; i < d.initializers.length; i += 1) {
+      d.variables[i].type = d.initializers[i].type
+      this.add(d.variables[i].name, d.variables[i])
+    }
     return d
   }
   TypeDeclaration(d) {
@@ -233,14 +252,17 @@ class Context {
     return f
   }
   FunctionDeclaration(d) {
-    d.fun.returnType = d.fun.returnType ? this.analyze(d.fun.returnType) : Type.VOID
+    d.fun.returnType = d.fun.returnType
+      ? this.analyze(d.fun.returnType)
+      : Type.VOID
+    console.log(util.inspect(d.fun))
     check(d.fun.returnType).isAType()
     // When entering a function body, we must reset the inLoop setting,
     // because it is possible to declare a function inside a loop!
     const childContext = this.newChild({ inLoop: false, forFunction: d.fun })
     d.fun.parameters = childContext.analyze(d.fun.parameters)
     d.fun.type = new FunctionType(
-      d.fun.parameters.map(p => p.type),
+      d.fun.parameters.map((p) => p.type),
       d.fun.returnType
     )
     // Add before analyzing the body to allow recursion
@@ -268,8 +290,9 @@ class Context {
     return t
   }
   Increment(s) {
-    console.log("s.var: " + s.variable)
+    console.log("s.var: " + util.inspect(s.variable))
     s.variable = this.analyze(s.variable)
+    console.log("After analyze, s.var: " + util.inspect(s.variable))
     check(s.variable).isInteger()
     return s
   }
@@ -439,7 +462,7 @@ class Context {
   MemberExpression(e) {
     e.object = this.analyze(e.object)
     check(e.field).isInTheObject(e.object)
-    e.field = e.object.type.fields.find(f => f.name === e.field)
+    e.field = e.object.type.fields.find((f) => f.name === e.field)
     e.type = e.field.type
     return e
   }
@@ -473,11 +496,14 @@ class Context {
   Boolean(e) {
     return e
   }
+  // Bool(e) {
+  //   return e
+  // }
   String(e) {
     return e
   }
   Array(a) {
-    return a.map(item => this.analyze(item))
+    return a.map((item) => this.analyze(item))
   }
 }
 

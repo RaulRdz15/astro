@@ -3,6 +3,7 @@
 import fs from "fs/promises"
 import process from "process"
 import compile from "./compiler.js"
+import util from "util"
 
 const help = `Astro compiler
 Syntax: src/astro.js <filename> <outputType>
@@ -15,7 +16,9 @@ Prints to stdout according to <outputType>, which must be one of:
 async function compileFromFile(filename, outputType) {
   try {
     const buffer = await fs.readFile(filename)
-    console.log(compile(buffer.toString(), outputType))
+    console.log(
+      util.inspect(compile(buffer.toString(), outputType), { depth: 10 })
+    )
   } catch (e) {
     console.error(`${e}`)
     process.exitCode = 1
